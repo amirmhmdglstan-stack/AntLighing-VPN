@@ -173,6 +173,11 @@ def selftest(argv: list[str] | None = None) -> int:
     rows: list[dict] = []
     if not engine.rootObjects():
         problems.append("main.qml failed to instantiate")
+        from PySide6.QtQml import QQmlComponent
+
+        diag = QQmlComponent(engine, QUrl.fromLocalFile(qml_path))
+        diag_errors = [err.toString() for err in diag.errors()]
+        problems.extend(diag_errors or ["(no compile errors reported)"])
         problems.extend(qt_messages[-25:])
     if not bridge.state:
         problems.append("bridge reported no state")
