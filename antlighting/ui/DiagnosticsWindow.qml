@@ -13,11 +13,11 @@ Window {
     minimumWidth: 420
     minimumHeight: 360
     title: qsTr("Diagnostics")
-    color: P.bg
+    color: pal.bg
 
-    readonly property var P: Theme.theme(app.setting("ui.theme"),
+    readonly property var pal: Theme.theme(app.setting("ui.theme"),
                                          Qt.styleHints.colorScheme === Qt.Dark)
-    readonly property var F: Theme.fontSizes()
+    readonly property var fnt: Theme.fontSizes()
     property var snapshot: ({})
 
     function open() {
@@ -89,14 +89,14 @@ Window {
                         Text {
                             Layout.preferredWidth: 150
                             text: modelData[0]
-                            color: win.P.textDim
-                            font.pixelSize: win.F.small
+                            color: win.pal.textDim
+                            font.pixelSize: win.fnt.small
                         }
                         Text {
                             Layout.fillWidth: true
                             text: modelData[1]
-                            color: win.P.text
-                            font.pixelSize: win.F.body
+                            color: win.pal.text
+                            font.pixelSize: win.fnt.body
                             wrapMode: Text.WordWrap
                             textFormat: Text.PlainText
                         }
@@ -136,8 +136,8 @@ Window {
                     width: ListView.view.width
                     height: 56
                     radius: Theme.radius.sm
-                    color: win.P.bgAlt
-                    border.color: win.P.border
+                    color: win.pal.bgAlt
+                    border.color: win.pal.border
                     Layout.bottomMargin: 6
                     RowLayout {
                         anchors.fill: parent
@@ -148,8 +148,8 @@ Window {
                             spacing: 0
                             Text {
                                 text: modelData.label
-                                color: win.P.text
-                                font.pixelSize: win.F.body
+                                color: win.pal.text
+                                font.pixelSize: win.fnt.body
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -157,8 +157,8 @@ Window {
                                 text: (modelData.enabled ? qsTr("enabled") : qsTr("disabled"))
                                       + " · " + qsTr("last fetch: %1 servers").arg(modelData.lastCount)
                                       + (modelData.lastError ? " · " + modelData.lastError : "")
-                                color: modelData.lastError ? win.P.warning : win.P.textFaint
-                                font.pixelSize: win.F.tiny
+                                color: modelData.lastError ? win.pal.warning : win.pal.textFaint
+                                font.pixelSize: win.fnt.tiny
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                             }
@@ -175,11 +175,11 @@ Window {
                     id: logArea
                     readOnly: true
                     wrapMode: TextArea.NoWrap
-                    color: win.P.textDim
+                    color: win.pal.textDim
                     font.family: "monospace"
                     font.pixelSize: 11
                     text: ""
-                    background: Rectangle { color: win.P.bgAlt }
+                    background: Rectangle { color: win.pal.bgAlt }
                 }
             }
 
@@ -191,16 +191,16 @@ Window {
                     id: coreLogArea
                     readOnly: true
                     wrapMode: TextArea.NoWrap
-                    color: win.P.textDim
+                    color: win.pal.textDim
                     font.family: "monospace"
                     font.pixelSize: 11
                     text: ""
-                    background: Rectangle { color: win.P.bgAlt }
+                    background: Rectangle { color: win.pal.bgAlt }
                 }
             }
         }
 
-        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: P.border }
+        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: pal.border }
 
         Item {
             Layout.fillWidth: true

@@ -10,9 +10,9 @@ Item {
     id: sheet
     property alias opened: popup.opened
 
-    readonly property var P: Theme.theme(app.setting("ui.theme"),
+    readonly property var pal: Theme.theme(app.setting("ui.theme"),
                                          Qt.styleHints.colorScheme === Qt.Dark)
-    readonly property var F: Theme.fontSizes()
+    readonly property var fnt: Theme.fontSizes()
 
     function open() {
         app.servers.refresh();
@@ -30,8 +30,8 @@ Item {
 
         background: Rectangle {
             radius: Theme.radius.lg
-            color: sheet.P.surface
-            border.color: sheet.P.border
+            color: sheet.pal.surface
+            border.color: sheet.pal.border
         }
 
         contentItem: ColumnLayout {
@@ -47,8 +47,8 @@ Item {
                     anchors.left: parent.left
                     anchors.leftMargin: 20
                     text: qsTr("🌍 Servers")
-                    color: sheet.P.text
-                    font.pixelSize: sheet.F.title
+                    color: sheet.pal.text
+                    font.pixelSize: sheet.fnt.title
                     font.bold: true
                 }
                 Text {
@@ -57,8 +57,8 @@ Item {
                     anchors.leftMargin: 20
                     anchors.top: parent.verticalCenter
                     text: qsTr("%1 available · %2 working").arg(app.poolTotal).arg(app.poolWorking)
-                    color: sheet.P.textFaint
-                    font.pixelSize: sheet.F.tiny
+                    color: sheet.pal.textFaint
+                    font.pixelSize: sheet.fnt.tiny
                 }
 
                 RoundButton {
@@ -77,7 +77,7 @@ Item {
                         color: "transparent"
                     }
                     contentItem: Text {
-                        text: "✕"; color: sheet.P.textDim
+                        text: "✕"; color: sheet.pal.textDim
                         font.pixelSize: 14
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -86,7 +86,7 @@ Item {
                 }
             }
 
-            Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: sheet.P.border }
+            Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: sheet.pal.border }
 
             // ---- list ---------------------------------------------------
             ListView {
@@ -115,7 +115,7 @@ Item {
                             visible: modelData.selected
                             width: 3
                             height: parent.height
-                            color: sheet.P.accent
+                            color: sheet.pal.accent
                         }
                     }
 
@@ -133,16 +133,16 @@ Item {
                             Text {
                                 Layout.fillWidth: true
                                 text: modelData.name
-                                color: sheet.P.text
-                                font.pixelSize: sheet.F.body
+                                color: sheet.pal.text
+                                font.pixelSize: sheet.fnt.body
                                 font.bold: modelData.selected
                                 elide: Text.ElideRight
                             }
                             Text {
                                 Layout.fillWidth: true
                                 text: modelData.subtitle
-                                color: sheet.P.textFaint
-                                font.pixelSize: sheet.F.tiny
+                                color: sheet.pal.textFaint
+                                font.pixelSize: sheet.fnt.tiny
                                 elide: Text.ElideRight
                             }
                         }
@@ -152,15 +152,15 @@ Item {
                             Text {
                                 Layout.alignment: Qt.AlignRight
                                 text: modelData.latencyText
-                                color: sheet.P.textDim
-                                font.pixelSize: sheet.F.small
+                                color: sheet.pal.textDim
+                                font.pixelSize: sheet.fnt.small
                                 font.bold: true
                             }
                             Text {
                                 Layout.alignment: Qt.AlignRight
                                 text: modelData.statusText
                                 color: Theme.statusColor(sheet.P, modelData.status)
-                                font.pixelSize: sheet.F.tiny
+                                font.pixelSize: sheet.fnt.tiny
                             }
                         }
                     }
@@ -171,7 +171,7 @@ Item {
                 }
             }
 
-            Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: sheet.P.border }
+            Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: sheet.pal.border }
 
             // ---- footer actions -----------------------------------------
             RowLayout {
@@ -187,13 +187,13 @@ Item {
                     Accessible.name: text
                     background: Rectangle {
                         radius: Theme.radius.md
-                        color: testBtn.pressed ? sheet.P.surfaceHover : sheet.P.surface
-                        border.color: sheet.P.border
+                        color: testBtn.pressed ? sheet.pal.surfaceHover : sheet.pal.surface
+                        border.color: sheet.pal.border
                     }
                     contentItem: Text {
                         text: parent.text
-                        color: sheet.P.text
-                        font.pixelSize: sheet.F.body
+                        color: sheet.pal.text
+                        font.pixelSize: sheet.fnt.body
                         font.bold: true
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -212,12 +212,12 @@ Item {
                     ToolTip.text: qsTr("Refresh the server list")
                     background: Rectangle {
                         radius: Theme.radius.md
-                        color: refreshBtn.pressed ? sheet.P.surfaceHover : sheet.P.surface
-                        border.color: sheet.P.border
+                        color: refreshBtn.pressed ? sheet.pal.surfaceHover : sheet.pal.surface
+                        border.color: sheet.pal.border
                     }
                     contentItem: Text {
                         text: "⟳"
-                        color: sheet.P.text
+                        color: sheet.pal.text
                         font.pixelSize: 18
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -235,7 +235,7 @@ Item {
                 Layout.preferredHeight: app.testing || app.collecting ? 34 : 0
                 visible: Layout.preferredHeight > 0
                 radius: Theme.radius.sm
-                color: sheet.P.bgAlt
+                color: sheet.pal.bgAlt
                 Behavior on Layout.preferredHeight { NumberAnimation { duration: 200 } }
 
                 RowLayout {
@@ -252,8 +252,8 @@ Item {
                         Layout.fillWidth: true
                         text: app.collecting ? qsTr("Collecting servers…")
                                              : qsTr("Testing servers…")
-                        color: sheet.P.textDim
-                        font.pixelSize: sheet.F.tiny
+                        color: sheet.pal.textDim
+                        font.pixelSize: sheet.fnt.tiny
                         elide: Text.ElideRight
                     }
                 }

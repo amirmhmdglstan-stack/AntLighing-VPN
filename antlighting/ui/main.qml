@@ -12,13 +12,13 @@ ApplicationWindow {
     minimumWidth: 360
     minimumHeight: 600
     title: qsTr("AntLighting VPN")
-    color: P.bg
+    color: pal.bg
 
     // ------------------------------------------------------------------ palette
     readonly property bool systemDark: Qt.styleHints.colorScheme === Qt.Light
             ? false : true
-    readonly property var P: Theme.theme(app.setting("ui.theme"), systemDark)
-    readonly property var F: Theme.fontSizes()
+    readonly property var pal: Theme.theme(app.setting("ui.theme"), systemDark)
+    readonly property var fnt: Theme.fontSizes()
     readonly property bool reduceMotion: !app.setting("ui.animations")
     readonly property bool connected: app.state === "connected"
     readonly property bool connecting: app.state === "connecting"
@@ -53,7 +53,7 @@ ApplicationWindow {
     // -------------------------------------------------------------- background
     Rectangle {
         anchors.fill: parent
-        color: P.bg
+        color: pal.bg
     }
     Rectangle {
         // a soft accent wash behind the mascot so it sits in the composition
@@ -62,7 +62,7 @@ ApplicationWindow {
         width: 520
         height: 520
         radius: 260
-        color: Theme.stateAccent(P, app.state)
+        color: Theme.stateAccent(pal, app.state)
         opacity: connected ? 0.10 : (connecting ? 0.07 : 0.03)
         Behavior on opacity { NumberAnimation { duration: 500 } }
         Behavior on color { ColorAnimation { duration: 500 } }
@@ -101,13 +101,13 @@ ApplicationWindow {
 
             background: Rectangle {
                 radius: 20
-                color: settingsButton.hovered ? P.surfaceHover : "transparent"
-                border.color: settingsButton.hovered ? P.border : "transparent"
+                color: settingsButton.hovered ? pal.surfaceHover : "transparent"
+                border.color: settingsButton.hovered ? pal.border : "transparent"
                 Behavior on color { ColorAnimation { duration: 150 } }
             }
             contentItem: Text {
                 text: "⚙"
-                color: settingsButton.hovered ? P.text : P.textDim
+                color: settingsButton.hovered ? pal.text : pal.textDim
                 font.pixelSize: 20
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -138,7 +138,7 @@ ApplicationWindow {
             Layout.preferredWidth: Math.min(280, window.width - 80)
             Layout.preferredHeight: Layout.preferredWidth
             mood: window.mascotState()
-            colors: P
+            colors: pal
             reduceMotion: window.reduceMotion
         }
 
@@ -151,8 +151,8 @@ ApplicationWindow {
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: app.message
-                color: errored ? P.danger : (connected ? P.success : P.text)
-                font.pixelSize: F.title
+                color: errored ? pal.danger : (connected ? pal.success : pal.text)
+                font.pixelSize: fnt.title
                 font.bold: true
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
@@ -163,8 +163,8 @@ ApplicationWindow {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.fillWidth: true
                 text: app.detail
-                color: P.textDim
-                font.pixelSize: F.body
+                color: pal.textDim
+                font.pixelSize: fnt.body
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
                 visible: text.length > 0
@@ -189,10 +189,10 @@ ApplicationWindow {
                 color: connectButton.down ? Qt.darker(accentColor, 1.15)
                                           : (connectButton.hovered ? Qt.lighter(accentColor, 1.1)
                                                                     : accentColor)
-                readonly property color accentColor: window.connected ? P.success
-                        : (window.errored ? P.danger : P.accent)
+                readonly property color accentColor: window.connected ? pal.success
+                        : (window.errored ? pal.danger : pal.accent)
                 border.width: connectButton.activeFocus ? 3 : 0
-                border.color: P.text
+                border.color: pal.text
                 Behavior on color { ColorAnimation { duration: 220 } }
                 scale: connectButton.down ? 0.97 : 1.0
                 Behavior on scale { NumberAnimation { duration: 120 } }
@@ -228,7 +228,7 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     text: window.connectLabel()
                     color: "#10161D"
-                    font.pixelSize: F.subtitle
+                    font.pixelSize: fnt.subtitle
                     font.bold: true
                     font.letterSpacing: 1.2
                     horizontalAlignment: Text.AlignHCenter
@@ -247,7 +247,7 @@ ApplicationWindow {
             Layout.preferredWidth: 210
             Layout.preferredHeight: 4
             radius: 2
-            color: P.border
+            color: pal.border
             visible: window.connecting
             opacity: window.connecting ? 1.0 : 0.0
             Behavior on opacity { NumberAnimation { duration: 250 } }
@@ -256,7 +256,7 @@ ApplicationWindow {
                 height: parent.height
                 radius: 2
                 width: parent.width * Math.max(0.04, app.progress)
-                color: P.accent
+                color: pal.accent
                 Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
             }
         }
@@ -276,8 +276,8 @@ ApplicationWindow {
 
             background: Rectangle {
                 radius: Theme.radius.lg
-                color: serverButton.hovered ? P.surfaceHover : P.surface
-                border.color: serverButton.activeFocus ? P.text : P.border
+                color: serverButton.hovered ? pal.surfaceHover : pal.surface
+                border.color: serverButton.activeFocus ? pal.text : pal.border
                 border.width: serverButton.activeFocus ? 2 : 1
                 Behavior on color { ColorAnimation { duration: 150 } }
             }
@@ -294,8 +294,8 @@ ApplicationWindow {
                     Text {
                         Layout.fillWidth: true
                         text: qsTr("Server: ") + app.serverName
-                        color: P.text
-                        font.pixelSize: F.body
+                        color: pal.text
+                        font.pixelSize: fnt.body
                         font.bold: true
                         elide: Text.ElideRight
                     }
@@ -305,20 +305,20 @@ ApplicationWindow {
                               : (app.poolTotal > 0
                                  ? qsTr("%1 servers available").arg(app.poolTotal)
                                  : qsTr("Tap to refresh the list"))
-                        color: P.textDim
-                        font.pixelSize: F.tiny
+                        color: pal.textDim
+                        font.pixelSize: fnt.tiny
                         elide: Text.ElideRight
                     }
                 }
                 Text {
                     text: app.latencyText
-                    color: window.connected ? P.success : P.textFaint
-                    font.pixelSize: F.small
+                    color: window.connected ? pal.success : pal.textFaint
+                    font.pixelSize: fnt.small
                     font.bold: true
                 }
                 Text {
                     text: "›"
-                    color: P.textFaint
+                    color: pal.textFaint
                     font.pixelSize: 20
                 }
             }
@@ -336,22 +336,22 @@ ApplicationWindow {
                 text: window.connected
                       ? qsTr("🔒 Encrypted via %1").arg(app.mode === "tun" ? qsTr("VPN tunnel") : qsTr("system proxy"))
                       : qsTr("🔓 Not protected")
-                color: window.connected ? P.textDim : P.textFaint
-                font.pixelSize: F.tiny
+                color: window.connected ? pal.textDim : pal.textFaint
+                font.pixelSize: fnt.tiny
             }
-            Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 12; color: P.border }
+            Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 12; color: pal.border }
             Text {
                 text: app.coreState === "running" ? qsTr("Core running") : qsTr("Core idle")
-                color: P.textFaint
-                font.pixelSize: F.tiny
+                color: pal.textFaint
+                font.pixelSize: fnt.tiny
             }
         }
 
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: qsTr("AntLighting VPN")
-            color: P.textFaint
-            font.pixelSize: F.small
+            color: pal.textFaint
+            font.pixelSize: fnt.small
             font.bold: true
             font.letterSpacing: 2.0
         }
@@ -380,8 +380,8 @@ ApplicationWindow {
         width: Math.min(toastText.implicitWidth + 32, window.width - 48)
         height: 42
         radius: 21
-        color: P.surface
-        border.color: P.border
+        color: pal.surface
+        border.color: pal.border
         opacity: 0
         visible: opacity > 0.01
         Behavior on opacity { NumberAnimation { duration: 220 } }
@@ -390,8 +390,8 @@ ApplicationWindow {
             id: toastText
             anchors.centerIn: parent
             text: ""
-            color: P.text
-            font.pixelSize: F.small
+            color: pal.text
+            font.pixelSize: fnt.small
         }
 
         function show(message) {

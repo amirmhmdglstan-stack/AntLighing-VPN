@@ -294,3 +294,20 @@ def test_mascot_does_not_shadow_item_properties():
     text = open(os.path.join(UI_DIR, "AntMascot.qml"), encoding="utf-8").read()
     assert "property string state:" not in text
     assert "property var palette:" not in text
+
+
+def test_no_uppercase_custom_property_names():
+    """QML rejects custom properties starting with a capital at *runtime* even
+    though qmllint tolerates them, so guard it statically."""
+    import re
+
+    pattern = re.compile(r"property\s+(?:readonly\s+)?\w+\s+([A-Z][A-Za-z0-9_]*)\s*:")
+    offenders = []
+    for qml in glob.glob(os.path.join(UI_DIR, "*.qml")):
+        for lineno, line in enumerate(
+            open(qml, encoding="utf-8").read().splitlines(), 1
+        ):
+            m = pattern.search(line)
+            if m:
+                offenders.append(f"{os.path.basename(qml)}:{lineno}: {m.group(1)}")
+    assert not offenders, f"uppercase property names: {offenders}"

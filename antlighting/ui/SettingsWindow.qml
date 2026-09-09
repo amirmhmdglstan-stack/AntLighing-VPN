@@ -13,11 +13,11 @@ Window {
     minimumWidth: 420
     minimumHeight: 480
     title: qsTr("Advanced settings")
-    color: P.bg
+    color: pal.bg
 
-    readonly property var P: Theme.theme(app.setting("ui.theme"),
+    readonly property var pal: Theme.theme(app.setting("ui.theme"),
                                          Qt.styleHints.colorScheme === Qt.Dark)
-    readonly property var F: Theme.fontSizes()
+    readonly property var fnt: Theme.fontSizes()
 
     function open() { show(); raise(); requestActivate() }
 
@@ -30,15 +30,15 @@ Window {
         property string explanation: ""
         Text {
             text: parent.heading
-            color: win.P.text
-            font.pixelSize: win.F.subtitle
+            color: win.pal.text
+            font.pixelSize: win.fnt.subtitle
             font.bold: true
         }
         Text {
             Layout.fillWidth: true
             text: parent.explanation
-            color: win.P.textDim
-            font.pixelSize: win.F.small
+            color: win.pal.textDim
+            font.pixelSize: win.fnt.small
             wrapMode: Text.WordWrap
             visible: text.length > 0
         }
@@ -53,12 +53,12 @@ Window {
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 0
-            Text { text: parent.parent.label; color: win.P.text; font.pixelSize: win.F.body }
+            Text { text: parent.parent.label; color: win.pal.text; font.pixelSize: win.fnt.body }
             Text {
                 Layout.fillWidth: true
                 text: parent.parent.help
-                color: win.P.textFaint
-                font.pixelSize: win.F.tiny
+                color: win.pal.textFaint
+                font.pixelSize: win.fnt.tiny
                 wrapMode: Text.WordWrap
                 visible: text.length > 0
             }
@@ -81,12 +81,12 @@ Window {
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 0
-            Text { text: parent.parent.label; color: win.P.text; font.pixelSize: win.F.body }
+            Text { text: parent.parent.label; color: win.pal.text; font.pixelSize: win.fnt.body }
             Text {
                 Layout.fillWidth: true
                 text: parent.parent.help
-                color: win.P.textFaint
-                font.pixelSize: win.F.tiny
+                color: win.pal.textFaint
+                font.pixelSize: win.fnt.tiny
                 wrapMode: Text.WordWrap
                 visible: text.length > 0
             }
@@ -154,8 +154,8 @@ Window {
                             Layout.fillWidth: true
                             text: app.elevated ? qsTr("✓ Running with administrator rights — full VPN available")
                                                : qsTr("ⓘ Not elevated — the system proxy will be used")
-                            color: app.elevated ? win.P.success : win.P.textDim
-                            font.pixelSize: win.F.small
+                            color: app.elevated ? win.pal.success : win.pal.textDim
+                            font.pixelSize: win.fnt.small
                             wrapMode: Text.WordWrap
                         }
                     }
@@ -212,8 +212,8 @@ Window {
                         Text {
                             Layout.fillWidth: true
                             text: qsTr("Core: %1").arg(app.coreVersion)
-                            color: win.P.textDim
-                            font.pixelSize: win.F.small
+                            color: win.pal.textDim
+                            font.pixelSize: win.fnt.small
                         }
                     }
                 }
@@ -239,8 +239,8 @@ Window {
                         Layout.fillWidth: true
                         Text {
                             text: qsTr("Test timeout")
-                            color: win.P.text
-                            font.pixelSize: win.F.body
+                            color: win.pal.text
+                            font.pixelSize: win.fnt.body
                             Layout.fillWidth: true
                         }
                         SpinBox {
@@ -258,8 +258,8 @@ Window {
                         Layout.fillWidth: true
                         Text {
                             text: qsTr("Slow threshold")
-                            color: win.P.text
-                            font.pixelSize: win.F.body
+                            color: win.pal.text
+                            font.pixelSize: win.fnt.body
                             Layout.fillWidth: true
                         }
                         SpinBox {
@@ -276,8 +276,8 @@ Window {
                         Layout.fillWidth: true
                         Text {
                             text: qsTr("Parallel tests")
-                            color: win.P.text
-                            font.pixelSize: win.F.body
+                            color: win.pal.text
+                            font.pixelSize: win.fnt.body
                             Layout.fillWidth: true
                         }
                         SpinBox {
@@ -300,8 +300,8 @@ Window {
                             Layout.fillWidth: true
                             text: qsTr("%1 servers stored, %2 confirmed working")
                                     .arg(app.poolTotal).arg(app.poolWorking)
-                            color: win.P.textDim
-                            font.pixelSize: win.F.small
+                            color: win.pal.textDim
+                            font.pixelSize: win.fnt.small
                         }
                         Button {
                             text: qsTr("Test now")
@@ -325,11 +325,11 @@ Window {
                         Layout.preferredHeight: 90
                         placeholderText: qsTr("vless://…")
                         wrapMode: TextArea.Wrap
-                        color: win.P.text
+                        color: win.pal.text
                         background: Rectangle {
                             radius: Theme.radius.md
-                            color: win.P.bgAlt
-                            border.color: win.P.border
+                            color: win.pal.bgAlt
+                            border.color: win.pal.border
                         }
                         focusPolicy: Qt.TabFocus
                         Accessible.name: qsTr("Server share links to import")
@@ -348,8 +348,8 @@ Window {
                         Text {
                             id: importStatus
                             Layout.fillWidth: true
-                            color: win.P.success
-                            font.pixelSize: win.F.small
+                            color: win.pal.success
+                            font.pixelSize: win.fnt.small
                         }
                     }
                 }
@@ -383,15 +383,15 @@ Window {
                                 spacing: 0
                                 Text {
                                     text: modelData.label
-                                    color: win.P.text
-                                    font.pixelSize: win.F.body
+                                    color: win.pal.text
+                                    font.pixelSize: win.fnt.body
                                 }
                                 Text {
                                     Layout.fillWidth: true
                                     text: modelData.kind + (modelData.urls && modelData.urls.length
                                                             ? " · " + modelData.urls.length + " endpoint(s)" : "")
-                                    color: win.P.textFaint
-                                    font.pixelSize: win.F.tiny
+                                    color: win.pal.textFaint
+                                    font.pixelSize: win.fnt.tiny
                                     elide: Text.ElideRight
                                 }
                             }
@@ -410,15 +410,15 @@ Window {
                         }
                     }
 
-                    Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: win.P.border }
+                    Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: win.pal.border }
 
                     RowLayout {
                         Layout.fillWidth: true
                         Text {
                             Layout.fillWidth: true
                             text: qsTr("Refresh every")
-                            color: win.P.text
-                            font.pixelSize: win.F.body
+                            color: win.pal.text
+                            font.pixelSize: win.fnt.body
                         }
                         SpinBox {
                             from: 1; to: 168; stepSize: 1
@@ -509,7 +509,7 @@ Window {
             }
         }
 
-        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: P.border }
+        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: pal.border }
 
         // ----------------------------------------------------------------- footer
         Item {
