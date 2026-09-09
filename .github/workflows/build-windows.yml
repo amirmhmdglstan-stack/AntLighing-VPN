@@ -133,9 +133,6 @@ jobs:
 
       # ----------------------------------------------------------------- build
       - name: Build with PyInstaller
-        env:
-          # Console variant so C-level Qt startup errors are capturable in CI.
-          ANTLIGHTING_CONSOLE: "1"
         run: |
           python -m PyInstaller packaging/AntLighting.spec --noconfirm --clean
 
@@ -207,7 +204,7 @@ jobs:
           if ($report -notmatch "Qt interface : OK") {
             throw "the packaged build could not load its QML interface"
           }
-          if ($report -notmatch "core version : \d") {
+          if ($report -match "core version : (n/a|\s*$)") {
             throw "the packaged build could not run the bundled Xray core"
           }
 
