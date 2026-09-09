@@ -154,8 +154,8 @@ jobs:
           $code = $LASTEXITCODE
           # The sandboxed agent cannot read raw step logs, so mirror the outcome
           # (report or traceback) into annotations that are readable via the API.
-          Get-Content selftest-source.log -Tail 40 | ForEach-Object {
-            if ($code -ne 0) { Write-Host "::error::$_" } else { Write-Host $_ }
+          Get-Content selftest-source.log | ForEach-Object {
+            if ($code -ne 0 -and $_ -match "PROBLEM|\[qml\]|\[qt\]|rror") { Write-Host "::error::$_" }
           }
           if ($code -ne 0) { throw "source self-test failed with exit code $code" }
 
