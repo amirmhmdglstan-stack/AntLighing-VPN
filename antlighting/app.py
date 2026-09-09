@@ -136,22 +136,29 @@ def selftest(argv: list[str] | None = None) -> int:
     from .ui.bridge import AppBridge
 
     argv = list(sys.argv if argv is None else argv)
-    QGuiApplication.setApplicationName(APP_NAME)
-    app = QGuiApplication(argv)
 
     from PySide6.QtCore import qInstallMessageHandler
 
     qt_messages: list[str] = []
 
     def _capture(msg_type, _context, message):  # surface QML errors in the report
-        qt_messages.append(f"[qt:{msg_type}] {message}")
+        qt_messages.append(f"[qt] {message}")
 
     qInstallMessageHandler(_capture)
+
+    QGuiApplication.setApplicationName(APP_NAME)
+    app = QGuiApplication(argv)
 
     controller, _settings, store = build_controller()
     bridge = AppBridge(controller)
 
     engine = QQmlApplicationEngine()
+
+    def _on_warnings(warnings):
+        for warning in warnings:
+            qt_messages.append(f"[qml] {warning.toString()}")
+
+    engine.warnings.connect(_on_warnings)
     engine.rootContext().setContextProperty("app", bridge)
     engine.rootContext().setContextProperty("appVersion", __version__)
     qml_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui", "main.qml")
