@@ -133,6 +133,9 @@ jobs:
 
       # ----------------------------------------------------------------- build
       - name: Build with PyInstaller
+        env:
+          # Console variant so C-level Qt startup errors are capturable in CI.
+          ANTLIGHTING_CONSOLE: "1"
         run: |
           python -m PyInstaller packaging/AntLighting.spec --noconfirm --clean
 
@@ -171,16 +174,15 @@ jobs:
           Copy-Item "packaging/runtime/*" "dist/AntLighting/" -Force
 
           $proc = Start-Process -FilePath $exe -ArgumentList "--selftest" `
-            -PassThru -NoNewWindow -Wait
-          $reportLines = @()
-          if (Test-Path $env:ANTLIGHTING_SELFTEST_REPORT) {
-            $reportLines = Get-Content $env:ANTLIGHTING_SELFTEST_REPORT
-          }
-          $reportLines | ForEach-Object {
-            if ($proc.ExitCode -ne 0) { Write-Host "::error::$_" } else { Write-Host $_ }
-          }
-
+            -PassThru -NoNewWindow -Wait `
+            -RedirectStandardOutput frozen.out -RedirectStandardError frozen.err
+          # Gather every diagnostic channel (report + console) so a failure is readable.
+          $diag = @()
+          if (Test-Path $env:ANTLIGHTING_SELFTEST_REPORT) { $diag += Get-Content $env:ANTLIGHTING_SELFTEST_REPORT }
+          if (Test-Path frozen.out) { $diag += Get-Content frozen.out }
+          if (Test-Path frozen.err) { $diag += Get-Content frozen.err }
           if ($proc.ExitCode -ne 0) {
+            $diag | Select-Object -Last 30 | ForEach-Object { Write-Host "::error::$_" }
             throw "packaged self-test failed with exit code $($proc.ExitCode)"
           }
           $report = Get-Content $env:ANTLIGHTING_SELFTEST_REPORT -Raw

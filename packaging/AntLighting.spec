@@ -131,7 +131,9 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
-    console=False,           # no console window for the GUI
+    # CI builds a console variant (ANTLIGHTING_CONSOLE=1) so startup errors from
+    # the Qt C++ layer are capturable; release builds stay console-less.
+    console=os.environ.get("ANTLIGHTING_CONSOLE", "") == "1",
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
