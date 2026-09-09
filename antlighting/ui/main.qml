@@ -214,7 +214,6 @@ ApplicationWindow {
                     BusyIndicator {
                         anchors.fill: parent
                         running: window.connecting
-                        palette.dark: true
                         contentItem: Rectangle {
                             width: 20; height: 20
                             radius: 10
