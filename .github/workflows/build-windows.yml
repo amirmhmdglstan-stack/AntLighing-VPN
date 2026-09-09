@@ -79,10 +79,19 @@ jobs:
         shell: pwsh
         run: |
           $tag = "${{ inputs.xray_tag }}"
+          $fallback = "v26.3.27"   # last verified release; used if the API is rate-limited
           if ([string]::IsNullOrWhiteSpace($tag)) {
-            $latest = Invoke-RestMethod -Uri "https://api.github.com/repos/XTLS/Xray-core/releases/latest" `
-              -Headers @{ "User-Agent" = "AntLighting-CI" }
-            $tag = $latest.tag_name
+            for ($i = 1; $i -le 3 -and [string]::IsNullOrWhiteSpace($tag); $i++) {
+              try {
+                $latest = Invoke-RestMethod -Uri "https://api.github.com/repos/XTLS/Xray-core/releases/latest" `
+                  -Headers @{ "User-Agent" = "AntLighting-CI" }
+                $tag = $latest.tag_name
+              } catch {
+                Write-Warning "release API attempt $i failed: $_"
+                Start-Sleep -Seconds 5
+              }
+            }
+            if ([string]::IsNullOrWhiteSpace($tag)) { $tag = $fallback }
           }
           Write-Host "Bundling Xray-core $tag"
           "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
