@@ -222,16 +222,22 @@ class XrayCore(CoreBackend):
                 return self.status()
             self._stop_event.set()
             self._append_log("[antlighting] stopping core")
-            _terminate(process)
+            if os.name == "nt":
+                # A Windows launcher (cmd / batch wrapper) spawns the real worker
+                # as a child; terminating only the top process would orphan it.
+                # Always kill the whole tree.
+                _kill_tree(process)
+            else:
+                _terminate(process)
             deadline = time.monotonic() + timeout
             while time.monotonic() < deadline and process.poll() is None:
                 time.sleep(0.05)
             if process.poll() is None:
                 _kill_tree(process)
-                try:
-                    process.wait(timeout=3.0)
-                except subprocess.TimeoutExpired:
-                    log.error("core process %s refused to die", process.pid)
+            try:
+                process.wait(timeout=3.0)
+            except subprocess.TimeoutExpired:
+                log.error("core process %s refused to die", process.pid)
             self._append_log(f"[antlighting] core exited with code {process.returncode}")
             self._process = None
             self._started_at = None
