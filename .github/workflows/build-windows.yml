@@ -271,6 +271,32 @@ jobs:
             "installer: $($_.Name)  $([math]::Round($_.Length/1MB,1)) MB"
           }
 
+      - name: Install and verify the setup (silent)
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+          ANTLIGHTING_DATA_DIR: ${{ runner.temp }}/al-installed
+          ANTLIGHTING_SELFTEST_REPORT: ${{ runner.temp }}/selftest-installed.txt
+        run: |
+          $setup = Get-ChildItem "packaging/installer-output/*.exe" | Select-Object -First 1
+          # Silent install with the desktop-shortcut task enabled, exactly as a
+          # user (or a repeated automated test) would run it.
+          Start-Process -FilePath $setup.FullName -Wait -NoNewWindow `
+            -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/TASKS=desktopicon"
+          $dir = "C:\Program Files\AntLighting VPN"
+          if (-not (Test-Path "$dir\AntLighting.exe")) { throw "installed exe not found in $dir" }
+
+          $p = Start-Process -FilePath "$dir\AntLighting.exe" -ArgumentList "--selftest" `
+            -Wait -NoNewWindow -PassThru -RedirectStandardOutput inst.out -RedirectStandardError inst.err
+          if ($p.ExitCode -ne 0) {
+            Get-Content $env:ANTLIGHTING_SELFTEST_REPORT -ErrorAction SilentlyContinue |
+              ForEach-Object { Write-Host "::error::$_" }
+            throw "installed self-test failed with exit code $($p.ExitCode)"
+          }
+          $lnk = Join-Path $env:PUBLIC "Desktop\AntLighting VPN.lnk"
+          if (-not (Test-Path $lnk)) { throw "desktop shortcut was not created" }
+          Write-Host "installed OK, installed self-test OK, desktop shortcut present"
+
       - name: Upload the installer
         uses: actions/upload-artifact@v4
         with:
