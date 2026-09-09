@@ -1,0 +1,4 @@
+# AntLighting VPN runtime dependencies.
+# Qt is the only third-party runtime dependency: the configuration collector,
+# parser, ranking, tester and core controller are all pure standard library.
+PySide6>=6.6,<7.0
