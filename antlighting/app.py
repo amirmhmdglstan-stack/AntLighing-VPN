@@ -139,6 +139,15 @@ def selftest(argv: list[str] | None = None) -> int:
     QGuiApplication.setApplicationName(APP_NAME)
     app = QGuiApplication(argv)
 
+    from PySide6.QtCore import qInstallMessageHandler
+
+    qt_messages: list[str] = []
+
+    def _capture(msg_type, _context, message):  # surface QML errors in the report
+        qt_messages.append(f"[qt:{msg_type}] {message}")
+
+    qInstallMessageHandler(_capture)
+
     controller, _settings, store = build_controller()
     bridge = AppBridge(controller)
 
@@ -152,6 +161,7 @@ def selftest(argv: list[str] | None = None) -> int:
     rows: list[dict] = []
     if not engine.rootObjects():
         problems.append("main.qml failed to instantiate")
+        problems.extend(qt_messages[-25:])
     if not bridge.state:
         problems.append("bridge reported no state")
     try:
