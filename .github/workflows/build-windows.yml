@@ -279,23 +279,26 @@ jobs:
           ANTLIGHTING_SELFTEST_REPORT: ${{ runner.temp }}/selftest-installed.txt
         run: |
           $setup = Get-ChildItem "packaging/installer-output/*.exe" | Select-Object -First 1
-          # Silent install with the desktop-shortcut task enabled, exactly as a
-          # user (or a repeated automated test) would run it.
+          # Pin the install dir so the check is deterministic regardless of the
+          # per-user vs per-machine default, and enable the desktop shortcut.
+          $dir = "$env:TEMP\antlighting-installed"
           Start-Process -FilePath $setup.FullName -Wait -NoNewWindow `
-            -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/TASKS=desktopicon"
-          $dir = "C:\Program Files\AntLighting VPN"
+            -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/DIR=$dir","/TASKS=desktopicon"
           if (-not (Test-Path "$dir\AntLighting.exe")) { throw "installed exe not found in $dir" }
 
           $p = Start-Process -FilePath "$dir\AntLighting.exe" -ArgumentList "--selftest" `
             -Wait -NoNewWindow -PassThru -RedirectStandardOutput inst.out -RedirectStandardError inst.err
           if ($p.ExitCode -ne 0) {
-            Get-Content $env:ANTLIGHTING_SELFTEST_REPORT -ErrorAction SilentlyContinue |
-              ForEach-Object { Write-Host "::error::$_" }
+            foreach ($f in @($env:ANTLIGHTING_SELFTEST_REPORT, "inst.out", "inst.err")) {
+              if (Test-Path $f) { Get-Content $f | Select-Object -Last 10 | ForEach-Object { Write-Host "::error::$_" } }
+            }
             throw "installed self-test failed with exit code $($p.ExitCode)"
           }
-          $lnk = Join-Path $env:PUBLIC "Desktop\AntLighting VPN.lnk"
-          if (-not (Test-Path $lnk)) { throw "desktop shortcut was not created" }
-          Write-Host "installed OK, installed self-test OK, desktop shortcut present"
+          $userDesktop = [Environment]::GetFolderPath("Desktop")
+          $commonDesktop = Join-Path $env:PUBLIC "Desktop"
+          $lnk = @($userDesktop, $commonDesktop) | Where-Object { Test-Path (Join-Path $_ "AntLighting VPN.lnk") } | Select-Object -First 1
+          if (-not $lnk) { throw "desktop shortcut was not created (checked $userDesktop and $commonDesktop)" }
+          Write-Host "installed OK, installed self-test OK, desktop shortcut in $lnk"
 
       - name: Upload the installer
         uses: actions/upload-artifact@v4
