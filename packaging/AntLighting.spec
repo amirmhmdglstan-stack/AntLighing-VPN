@@ -25,6 +25,31 @@ datas = [
     (UI_DIR, "antlighting/ui"),
 ]
 
+# The QML engine resolves `import QtQuick*` from Qt's qml directory.  PyInstaller's
+# PySide6 hooks copy the C++ Qt libraries but not the QML *modules*, so a frozen
+# QtQuick app fails at runtime with "module QtQuick is not installed".  Bundle the
+# qml tree explicitly (only the modules we actually import, to stay lean).
+try:
+    import PySide6
+
+    _qml_root = os.path.join(os.path.dirname(PySide6.__file__), "Qt", "qml")
+    _wanted_qml = [
+        "QtQml",
+        "QtQuick",
+        "QtQuick.Controls",
+        "QtQuick.Layouts",
+        "QtQuick.Shapes",
+        "QtQuick.Window",
+        "QtQuick.Templates",
+    ]
+    if os.path.isdir(_qml_root):
+        for _mod in _wanted_qml:
+            _src = os.path.join(_qml_root, _mod)
+            if os.path.isdir(_src):
+                datas.append((_src, os.path.join("PySide6", "Qt", "qml", _mod)))
+except Exception:  # noqa: BLE001 - never break the build on introspection
+    pass
+
 # An optional, pre-built core placed in packaging/runtime is bundled too.
 runtime_dir = os.path.join(SPECPATH, "runtime")
 if os.path.isdir(runtime_dir):

@@ -271,7 +271,20 @@ def run(argv: list[str] | None = None) -> int:
 
 def main() -> int:
     """Console entry point (``python -m antlighting``)."""
-    return run()
+    import traceback
+
+    try:
+        return run()
+    except BaseException:  # noqa: BLE001 - report even fatal startup errors
+        report_path = os.environ.get("ANTLIGHTING_SELFTEST_REPORT")
+        if report_path:
+            try:
+                os.makedirs(os.path.dirname(os.path.abspath(report_path)) or ".", exist_ok=True)
+                with open(report_path, "w", encoding="utf-8") as handle:
+                    handle.write("CRASH REPORT\n" + traceback.format_exc() + "\n")
+            except OSError:
+                pass
+        raise
 
 
 if __name__ == "__main__":  # pragma: no cover
