@@ -50,7 +50,13 @@ jobs:
             libxcb-keysyms1 libxcb-shape0 libxkbcommon-x11-0
 
       - name: Run the test suite
-        run: python -m pytest -q --maxfail=5
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q --maxfail=5 --junitxml=pytest-report.xml
+          code=$?
+          python tools/ci_annotate.py pytest-report.xml
+          exit $code
         env:
           QT_QPA_PLATFORM: offscreen
 
