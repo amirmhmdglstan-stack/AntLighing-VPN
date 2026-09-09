@@ -137,6 +137,11 @@ def selftest(argv: list[str] | None = None) -> int:
 
     argv = list(sys.argv if argv is None else argv)
 
+    # Headless/CI environments have no GPU; use the software scene-graph so the
+    # interface can actually be instantiated under QT_QPA_PLATFORM=offscreen.
+    os.environ.setdefault("QT_QUICK_BACKEND", "software")
+    os.environ.setdefault("QSG_RHI_BACKEND", "software")
+
     from PySide6.QtCore import qInstallMessageHandler
 
     qt_messages: list[str] = []
