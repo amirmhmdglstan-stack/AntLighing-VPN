@@ -182,6 +182,14 @@ jobs:
           if (Test-Path frozen.out) { $diag += Get-Content frozen.out }
           if (Test-Path frozen.err) { $diag += Get-Content frozen.err }
           if ($proc.ExitCode -ne 0) {
+            $internal = "dist/AntLighting/_internal"
+            Write-Host "::error::packaged exit code = $($proc.ExitCode)"
+            Write-Host ("::error::qtcore={0} qtgui={1} qml_qtquick={2} qml_files={3} platforms={4}" -f `
+              (Test-Path "$internal/Qt6Core.dll"), `
+              (Test-Path "$internal/Qt6Gui.dll"), `
+              (Test-Path "$internal/PySide6/Qt/qml/QtQuick"), `
+              ((Get-ChildItem -Recurse "$internal/PySide6/Qt/qml" -ErrorAction SilentlyContinue | Measure-Object).Count), `
+              (Test-Path "$internal/PySide6/Qt/plugins/platforms"))
             $diag | Select-Object -Last 30 | ForEach-Object { Write-Host "::error::$_" }
             throw "packaged self-test failed with exit code $($proc.ExitCode)"
           }
