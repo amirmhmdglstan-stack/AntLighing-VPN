@@ -150,9 +150,13 @@ jobs:
           ANTLIGHTING_SELFTEST_REPORT: ${{ runner.temp }}/selftest-source.txt
         shell: pwsh
         run: |
-          python -m antlighting --selftest
+          python -m antlighting --selftest *>&1 | Tee-Object -FilePath selftest-source.log
           $code = $LASTEXITCODE
-          Get-Content $env:ANTLIGHTING_SELFTEST_REPORT -ErrorAction SilentlyContinue
+          # The sandboxed agent cannot read raw step logs, so mirror the outcome
+          # (report or traceback) into annotations that are readable via the API.
+          Get-Content selftest-source.log -Tail 40 | ForEach-Object {
+            if ($code -ne 0) { Write-Host "::error::$_" } else { Write-Host $_ }
+          }
           if ($code -ne 0) { throw "source self-test failed with exit code $code" }
 
       - name: Self-test the packaged executable
@@ -168,7 +172,13 @@ jobs:
 
           $proc = Start-Process -FilePath $exe -ArgumentList "--selftest" `
             -PassThru -NoNewWindow -Wait
-          Get-Content $env:ANTLIGHTING_SELFTEST_REPORT -ErrorAction SilentlyContinue
+          $reportLines = @()
+          if (Test-Path $env:ANTLIGHTING_SELFTEST_REPORT) {
+            $reportLines = Get-Content $env:ANTLIGHTING_SELFTEST_REPORT
+          }
+          $reportLines | ForEach-Object {
+            if ($proc.ExitCode -ne 0) { Write-Host "::error::$_" } else { Write-Host $_ }
+          }
 
           if ($proc.ExitCode -ne 0) {
             throw "packaged self-test failed with exit code $($proc.ExitCode)"
