@@ -183,12 +183,20 @@ class TestTcpProbe:
         assert result.status == "working"
         assert result.latency_ms is not None
 
-    def test_closed_port_reports_failed(self):
+    def test_closed_port_is_not_reported_working(self):
+        """A port with no listener must never read as healthy.
+
+        POSIX refuses the connect (-> 'failed'); some Windows runners black-hole
+        the loopback connect (-> 'timeout').  Both are non-working and both are
+        heavily penalised by the ranker, so the platform-agnostic invariant is
+        simply "not working".
+        """
         port = free_port()
         cfg = sample_configs()[0]
         cfg.address, cfg.port = "127.0.0.1", port
         result = TcpProbe().test(cfg, timeout=2.0)
-        assert result.status == "failed"
+        assert result.status in ("failed", "timeout")
+        assert result.latency_ms is None
 
     def test_unresolvable_host_reports_failed(self):
         cfg = sample_configs()[0]

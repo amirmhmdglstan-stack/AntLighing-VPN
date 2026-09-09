@@ -32,6 +32,23 @@ def _config(port: int):
     )
 
 
+def _portable_wrapper(tmp_path, name: str, sh_body: str, bat_body: str) -> str:
+    """Create an executable stand-in for the core on both POSIX and Windows.
+
+    POSIX gets a shebang shell script; Windows gets a ``.bat`` that CreateProcess
+    can launch.  This keeps the *real* subprocess start/stop path exercised on
+    every platform instead of only on Unix.
+    """
+    if os.name == "nt":
+        wrapper = tmp_path / (name + ".bat")
+        wrapper.write_text(bat_body)
+        return str(wrapper)
+    wrapper = tmp_path / name
+    wrapper.write_text(sh_body)
+    wrapper.chmod(0o755)
+    return str(wrapper)
+
+
 class TestStartStop:
     def test_start_opens_the_local_listener(self):
         port = free_port()
@@ -159,10 +176,12 @@ class TestRealProcessLifecycle:
             "print('ready', flush=True)\n"
             "time.sleep(120)\n"
         )
-        wrapper = tmp_path / "xray"
-        wrapper.write_text(f"#!/bin/sh\nexec {sys.executable} {script} \"$@\"\n")
-        wrapper.chmod(0o755)
-        return str(wrapper)
+        return _portable_wrapper(
+            tmp_path,
+            "xray",
+            sh_body=f"#!/bin/sh\nexec {sys.executable} \"{script}\" \"$@\"\n",
+            bat_body=f"@echo off\r\n\"{sys.executable}\" \"{script}\" %*\r\n",
+        )
 
     def test_real_child_process_is_started_ready_and_reaped(self, fake_binary, tmp_path):
         core = XrayCore(binary_path=fake_binary, work_dir=str(tmp_path))
@@ -182,10 +201,13 @@ class TestRealProcessLifecycle:
 
     def test_core_that_never_listens_is_a_clean_failure(self, tmp_path):
         """Readiness means the port is open, not merely that the process lives."""
-        wrapper = tmp_path / "xray"
-        wrapper.write_text(f"#!/bin/sh\nexec {sys.executable} -c \"import time; time.sleep(60)\"\n")
-        wrapper.chmod(0o755)
-        core = XrayCore(binary_path=str(wrapper), work_dir=str(tmp_path))
+        wrapper = _portable_wrapper(
+            tmp_path,
+            "xray",
+            sh_body=f"#!/bin/sh\nexec {sys.executable} -c \"import time; time.sleep(60)\"\n",
+            bat_body=f"@echo off\r\n\"{sys.executable}\" -c \"import time; time.sleep(60)\"\r\n",
+        )
+        core = XrayCore(binary_path=wrapper, work_dir=str(tmp_path))
         manager = CoreManager(core)
         with pytest.raises(CoreError):
             manager.ensure_running(_config(free_port()), timeout=2.0)
@@ -199,10 +221,13 @@ class TestRealProcessLifecycle:
         assert leftovers == []
 
     def test_early_exit_is_reported_as_a_failure(self, tmp_path):
-        wrapper = tmp_path / "xray"
-        wrapper.write_text("#!/bin/sh\necho 'invalid config' >&2\nexit 23\n")
-        wrapper.chmod(0o755)
-        core = XrayCore(binary_path=str(wrapper), work_dir=str(tmp_path))
+        wrapper = _portable_wrapper(
+            tmp_path,
+            "xray",
+            sh_body="#!/bin/sh\necho 'invalid config' >&2\nexit 23\n",
+            bat_body="@echo off\r\necho invalid config 1>&2\r\nexit /b 23\r\n",
+        )
+        core = XrayCore(binary_path=wrapper, work_dir=str(tmp_path))
         status = core.start(_config(free_port()), timeout=4.0)
         assert status.state == CoreState.FAILED
         assert status.error
