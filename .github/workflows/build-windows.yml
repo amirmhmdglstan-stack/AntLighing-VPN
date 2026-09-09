@@ -23,6 +23,7 @@ on:
         default: ""
   push:
     tags: ["v*"]
+    branches: ["arena/**"]
   schedule:
     # Weekly, so a new Xray release or a broken dependency is caught early.
     - cron: "20 4 * * 1"
