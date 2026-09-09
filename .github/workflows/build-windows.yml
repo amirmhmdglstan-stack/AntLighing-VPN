@@ -1,0 +1,217 @@
+# Builds the Windows distribution of AntLighting VPN.
+#
+# What it does, in order:
+#   1. install Python + dependencies
+#   2. run the test suite (including the QML lint gate)
+#   3. download the *official* Xray-core release and its licence file
+#   4. build the frozen application with PyInstaller
+#   5. run the packaged executable's own --selftest and fail the build if it
+#      does not report success
+#   6. package everything into a zip and upload it as an artifact
+#      (and publish a GitHub release when the run is triggered by a tag)
+#
+# Manual run: Actions -> "Build Windows app" -> Run workflow.
+
+name: Build Windows app
+
+on:
+  workflow_dispatch:
+    inputs:
+      xray_tag:
+        description: "Xray-core release tag to bundle (empty = latest)"
+        required: false
+        default: ""
+  push:
+    tags: ["v*"]
+  schedule:
+    # Weekly, so a new Xray release or a broken dependency is caught early.
+    - cron: "20 4 * * 1"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  build:
+    name: Build and package (Windows x64)
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Run the test suite
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest -q
+
+      # ------------------------------------------------------------------ core
+      - name: Resolve the Xray-core release
+        id: xray
+        shell: pwsh
+        run: |
+          $tag = "${{ inputs.xray_tag }}"
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+            $latest = Invoke-RestMethod -Uri "https://api.github.com/repos/XTLS/Xray-core/releases/latest" `
+              -Headers @{ "User-Agent" = "AntLighting-CI" }
+            $tag = $latest.tag_name
+          }
+          Write-Host "Bundling Xray-core $tag"
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Download Xray-core and its licence
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.xray.outputs.tag }}"
+          $base = "https://github.com/XTLS/Xray-core/releases/download/$tag"
+          New-Item -ItemType Directory -Force -Path "packaging/runtime" | Out-Null
+
+          Invoke-WebRequest -Uri "$base/Xray-windows-64.zip" -OutFile "xray.zip"
+          Expand-Archive -Path "xray.zip" -DestinationPath "xray-extract" -Force
+
+          # The official zip contains xray.exe, wintun.dll, geoip.dat, geosite.dat
+          # and the licence files.  Copy only what the application actually uses.
+          $wanted = @("xray.exe", "wintun.dll", "geoip.dat", "geosite.dat")
+          foreach ($name in $wanted) {
+            $found = Get-ChildItem -Path "xray-extract" -Recurse -Filter $name -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $found) { throw "Xray release asset missing: $name" }
+            Copy-Item $found.FullName "packaging/runtime/$name"
+          }
+          Get-ChildItem -Path "xray-extract" -Recurse -Include "LICENSE*","LICENCE*" |
+            ForEach-Object { Copy-Item $_.FullName ("packaging/runtime/LICENSE-Xray-" + $_.Name) }
+
+          # Wintun ships its own licence; fetch it when the zip did not include one.
+          if (-not (Get-ChildItem "packaging/runtime" -Filter "*intun*")) {
+            try {
+              Invoke-WebRequest -Uri "https://raw.githubusercontent.com/XTLS/Xray-core/main/resources/wintun/LICENSE-Wintun" `
+                -OutFile "packaging/runtime/LICENSE-Wintun"
+            } catch { Write-Warning "Could not fetch the Wintun licence: $_" }
+          }
+
+          Get-ChildItem "packaging/runtime" | Format-Table Name, Length
+
+      - name: Verify the bundled core
+        shell: pwsh
+        run: |
+          & "packaging/runtime/xray.exe" version
+          if ($LASTEXITCODE -ne 0) { throw "bundled xray.exe did not run" }
+
+      # ------------------------------------------------------------------ icon
+      - name: Build the application icon
+        shell: pwsh
+        run: |
+          python packaging/make_icon.py
+          if (-not (Test-Path "packaging/AntLighting.ico")) { Write-Warning "icon generation failed" }
+
+      # ----------------------------------------------------------------- build
+      - name: Build with PyInstaller
+        run: |
+          python -m PyInstaller packaging/AntLighting.spec --noconfirm --clean
+
+      - name: Show the build output
+        shell: pwsh
+        run: |
+          Get-ChildItem -Recurse dist/AntLighting | Measure-Object -Property Length -Sum |
+            ForEach-Object { "files: $($_.Count)  size: $([math]::Round($_.Sum/1MB,1)) MB" }
+
+      # --------------------------------------------------------- self test
+      - name: Self-test the source build
+        env:
+          QT_QPA_PLATFORM: offscreen
+          ANTLIGHTING_DATA_DIR: ${{ runner.temp }}/al-data
+          ANTLIGHTING_SELFTEST_REPORT: ${{ runner.temp }}/selftest-source.txt
+        shell: pwsh
+        run: |
+          python -m antlighting --selftest
+          $code = $LASTEXITCODE
+          Get-Content $env:ANTLIGHTING_SELFTEST_REPORT -ErrorAction SilentlyContinue
+          if ($code -ne 0) { throw "source self-test failed with exit code $code" }
+
+      - name: Self-test the packaged executable
+        env:
+          QT_QPA_PLATFORM: offscreen
+          ANTLIGHTING_DATA_DIR: ${{ runner.temp }}/al-data-frozen
+          ANTLIGHTING_SELFTEST_REPORT: ${{ runner.temp }}/selftest-frozen.txt
+        shell: pwsh
+        run: |
+          $exe = "dist/AntLighting/AntLighting.exe"
+          if (-not (Test-Path $exe)) { throw "packaged executable not found" }
+          Copy-Item "packaging/runtime/*" "dist/AntLighting/" -Force
+
+          $proc = Start-Process -FilePath $exe -ArgumentList "--selftest" `
+            -PassThru -NoNewWindow -Wait
+          Get-Content $env:ANTLIGHTING_SELFTEST_REPORT -ErrorAction SilentlyContinue
+
+          if ($proc.ExitCode -ne 0) {
+            throw "packaged self-test failed with exit code $($proc.ExitCode)"
+          }
+          $report = Get-Content $env:ANTLIGHTING_SELFTEST_REPORT -Raw
+          if ($report -notmatch "SELFTEST OK") {
+            throw "packaged self-test did not report success"
+          }
+          if ($report -notmatch "Qt interface : OK") {
+            throw "the packaged build could not load its QML interface"
+          }
+          if ($report -notmatch "core version : \d") {
+            throw "the packaged build could not run the bundled Xray core"
+          }
+
+      - name: Launch check (windowed process stays alive)
+        shell: pwsh
+        run: |
+          $exe = "dist/AntLighting/AntLighting.exe"
+          $proc = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 20
+          if ($proc.HasExited) {
+            throw "the windowed build exited after 20s with code $($proc.ExitCode)"
+          }
+          Write-Host "windowed process alive after 20s"
+          Stop-Process -Id $proc.Id -Force
+          # Make sure no core process was orphaned.
+          Get-Process xray -ErrorAction SilentlyContinue | Stop-Process -Force
+
+      # -------------------------------------------------------------- package
+      - name: Package the distribution
+        shell: pwsh
+        run: |
+          Copy-Item "THIRD_PARTY_LICENSES.md" "dist/AntLighting/" -Force
+          Copy-Item "README.md" "dist/AntLighting/README.txt" -Force
+          Compress-Archive -Path "dist/AntLighting/*" `
+            -DestinationPath "AntLighting-Windows-x64.zip" -Force
+          Get-Item "AntLighting-Windows-x64.zip" |
+            ForEach-Object { "artifact: $($_.Name)  $([math]::Round($_.Length/1MB,1)) MB" }
+
+      - name: Upload the artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AntLighting-Windows-x64
+          path: AntLighting-Windows-x64.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish a GitHub release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: AntLighting-Windows-x64.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: false
