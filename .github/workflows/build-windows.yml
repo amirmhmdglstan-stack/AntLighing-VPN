@@ -255,6 +255,30 @@ jobs:
           Get-Item "AntLighting-Windows-x64.zip" |
             ForEach-Object { "artifact: $($_.Name)  $([math]::Round($_.Length/1MB,1)) MB" }
 
+      - name: Build the compressed installer (Inno Setup)
+        shell: pwsh
+        run: |
+          # Inno Setup is free/open and produces a single LZMA-compressed setup
+          # with the full options wizard (install dir, start menu, desktop
+          # shortcut, launch) plus silent-install flags for repeated testing.
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+          & $iscc "packaging/AntLighting.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compiler failed" }
+          Get-ChildItem "packaging/installer-output" | ForEach-Object {
+            "installer: $($_.Name)  $([math]::Round($_.Length/1MB,1)) MB"
+          }
+
+      - name: Upload the installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: AntLighting-VPN-Setup
+          path: packaging/installer-output/*.exe
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Upload the artifact
         uses: actions/upload-artifact@v4
         with:
@@ -267,7 +291,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: AntLighting-Windows-x64.zip
+          files: |
+            AntLighting-Windows-x64.zip
+            packaging/installer-output/*.exe
           generate_release_notes: true
           draft: false
           prerelease: false
