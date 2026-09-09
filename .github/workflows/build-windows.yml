@@ -211,6 +211,28 @@ jobs:
             throw "the packaged build could not run the bundled Xray core"
           }
 
+      # Always-on diagnostics: emit exactly one consolidated annotation describing
+      # the packaged self-test outcome, so a failure is readable via the API even
+      # when the step above aborts part-way.
+      - name: Dump packaged diagnostics
+        if: failure()
+        env:
+          ANTLIGHTING_SELFTEST_REPORT: ${{ runner.temp }}/selftest-frozen.txt
+        shell: pwsh
+        run: |
+          $p = @("exe=" + (Test-Path "dist/AntLighting/AntLighting.exe"))
+          $internal = "dist/AntLighting/_internal"
+          $p += ("qtcore=" + (Test-Path "$internal/Qt6Core.dll") + " platforms=" + (Test-Path "$internal/PySide6/Qt/plugins/platforms") + " qml_qtquick=" + (Test-Path "$internal/PySide6/Qt/qml/QtQuick"))
+          foreach ($f in @("frozen.out", "frozen.err", $env:ANTLIGHTING_SELFTEST_REPORT)) {
+            if ($f -and (Test-Path $f)) {
+              $p += ("[" + $f + "]")
+              $p += (Get-Content $f | Select-Object -Last 10)
+            } else {
+              $p += ("[" + $f + " MISSING]")
+            }
+          }
+          Write-Host ("::error::DIAG " + (($p -join " | ") -replace "\r?\n", " / "))
+
       - name: Launch check (windowed process stays alive)
         shell: pwsh
         run: |
